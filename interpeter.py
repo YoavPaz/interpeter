@@ -1,15 +1,26 @@
 from enum import Enum
 from typing import Optional
 
+from enum import Enum
+
 class TYPE(Enum):
-    INTEGER = 0,
-    PLUS = 1,
-    MINUS = 2,
-    MULTIPLY = 3,
-    DIVIDE = 4,
-    P_IN = 5,
-    P_OUT = 6,
+    INTEGER = 0
+    PLUS = 1
+    MINUS = 2
+    MULTIPLY = 3
+    DIVIDE = 4
+    P_IN = 5
+    P_OUT = 6
+    ASSIGN = 7
+    SEMI = 8
+    DOT = 9
+
+    ID = 10
+    BEGIN = 11
+    END = 12
+
     EOF = -1
+
 class Token:
     def __init__(self, type: TYPE, value):
         self.t: TYPE = type
@@ -22,32 +33,57 @@ class Token:
     def __repr__(self):
         return self.__str__()
 
+RESERVED_KEYWORDS = {
+    'BEGIN': Token(TYPE.BEGIN, 'BEGIN'),
+    'END': Token(TYPE.END, 'END'),
+}
+
 class Interpeter:
     def __init__(self, txt: str) -> None:
-        self.txt = txt.replace(" ", "")
+        self.txt = txt#txt.replace(" ", "")        
         self.i = 0
         self.current_token: Optional[Token] = None
-        self.current_char = ''
-    def _id(self):
+    def _id(self) -> Token:
         result = ''
-        while self.current_char is not None and self.current_char.isalnum():
-            result += self.current_char
-            self.advance()
-    def advance(self):
-        pass
+
+        while self.i < len(self.txt) and self.txt[self.i].isalnum():
+            result += self.txt[self.i]
+            self.i += 1
+
+        return RESERVED_KEYWORDS.get(result, Token(TYPE.ID, result))    
     def next_token(self) -> Token:
         if self.i >= len(self.txt):
             return Token(TYPE.EOF, None)
         
-        value = self.txt[self.i]  # read FIRST
-        self.i += 1               # then advance
+        while self.i < len(self.txt) and self.txt[self.i].isspace():
+            #print("Detected space skipping to next one!")
+            self.i += 1
         
+        if self.i >= len(self.txt):
+            return Token(TYPE.EOF, None)
+        
+        value = self.txt[self.i]
+        #print(f"Read value: {value}")
+        if value.isalpha():
+            d = self._id()
+            #print(f"Value is alpha, getting from id: {d}")
+            return d
+        self.i += 1
         if value.isdigit():
             val = self.extract_number(self.txt, self.i - 1)
+            print(f"Value is digit: {val}")
             self.i += len(str(val)) - 1
             return Token(TYPE.INTEGER, val)
-        
-        if value == '+': return Token(TYPE.PLUS, value)
+        #print(f"Value {value} Peek {self.peek()}")
+        if value == ':' and self.peek() == '=':
+            self.i += 1
+            return Token(TYPE.ASSIGN, ':=')
+        if value == ';':
+            return Token(TYPE.SEMI, ';')
+        if value == '.':
+            return Token(TYPE.DOT, '.')
+        if value == '+': 
+            return Token(TYPE.PLUS, value)
         if value == '-': return Token(TYPE.MINUS, value)
         if value == '*': return Token(TYPE.MULTIPLY, value)
         if value == '/': return Token(TYPE.DIVIDE, value)
@@ -65,7 +101,16 @@ class Interpeter:
             current_digit = txt[index]
         if digits == "": return None
         return int(digits)
-    
+    def peek(self):
+        peek_pos = self.i
+        #print("Peek pos",peek_pos,"i",self.i,"longer than length: ",peek_pos > len(self.txt) - 1)
+        if peek_pos > len(self.txt) - 1:
+            #print("Returning None From Peek!")
+            return None
+        else:
+            #print(f"Returning {self.txt[peek_pos]} From Peek!")
+            return self.txt[peek_pos]
+        
     def error(self):
         raise Exception("invalid character!")
     
