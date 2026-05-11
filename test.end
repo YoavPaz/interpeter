@@ -1,0 +1,8 @@
+BEGIN
+    x := 11;
+    c := 12;
+    BEGIN
+        
+    END;
+    hello := x * (c - 3 * (x + c));
+END.
